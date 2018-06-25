@@ -5,6 +5,7 @@ import shutil
 import operator
 import sys
 import argparse
+import numpy as np
 
 MINOVERLAP = 0.5 # default value (defined in the PASCAL VOC2012 challenge)
 
@@ -278,6 +279,11 @@ if draw_plot:
   os.makedirs(results_files_path + "/classes")
 if show_animation:
   os.makedirs(results_files_path + "/images")
+  os.makedirs(results_files_path + "/images/NO_MATCH_FOUND")
+  os.makedirs(results_files_path + "/images/MATCH")
+  os.makedirs(results_files_path + "/images/REPEATED_MATCH")
+  os.makedirs(results_files_path + "/images/INSUFFICIENT_OVERLAP")
+  os.makedirs(results_files_path + "/images/GROUND_TRUTH_NO_MATCH")
 
 """
  Ground-Truth
@@ -541,7 +547,9 @@ with open(results_files_path + "/results.txt", 'w') as results_file:
         cv2.imshow("Animation", img)
         cv2.waitKey(20) # show image for 20 ms
         # save image to results
-        output_img_path = results_files_path + "/images/" + class_name + "_prediction" + str(idx) + ".jpg"
+        # TODO: 加入多個資料夾存儲
+        save_status_path = status.replace(' ', '_').replace('!', '')
+        output_img_path = results_files_path + "/images/" + save_status_path + '/' + class_name + "_prediction" + str(idx) + ".jpg"
         cv2.imwrite(output_img_path, img)
 
     #print(tp)
@@ -606,6 +614,29 @@ with open(results_files_path + "/results.txt", 'w') as results_file:
 
   if show_animation:
     cv2.destroyAllWindows()
+  
+  # TODO: Read ground truth temp and save <"used": False>
+  if show_animation:
+    colors = np.array(plt.cm.hsv(np.linspace(0, 1, len(gt_classes))).tolist()) * 255
+    gt_files_name = tmp_files_path + "/*_ground_truth.json"
+    gt_files = glob.glob(gt_files_name)
+    for gt_file in gt_files:
+      name = os.path.split(gt_file)[-1].split('_ground_truth.json')[0]
+      img_file_name = name + '.jpg'
+      img = cv2.imread(img_path + '/' + img_file_name)
+      ground_truth_data = json.load(open(gt_file))
+      for obj in ground_truth_data:
+        if not obj["used"]:
+          color = colors[gt_classes.index(obj["class_name"])]
+          bbgt = [float(x) for x in obj["bbox"].split()]
+          cv2.rectangle(img, (int(bbgt[0]), int(bbgt[1])), (int(bbgt[2]), int(bbgt[3])), color, 2)
+          cv2.putText(img,
+                      obj["class_name"],
+                      (int(bbgt[0]), int(bbgt[1]) - 10),
+                      cv2.FONT_HERSHEY_SIMPLEX,
+                      1, color, 1)
+      output_img_path = results_files_path + "/images/GROUND_TRUTH_NO_MATCH/" + img_file_name
+      cv2.imwrite(output_img_path, img)
 
   results_file.write("\n# mAP of all classes\n")
   mAP = sum_AP / n_classes
