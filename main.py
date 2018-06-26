@@ -5,6 +5,7 @@ import shutil
 import operator
 import sys
 import argparse
+import math
 import numpy as np
 
 MINOVERLAP = 0.5 # default value (defined in the PASCAL VOC2012 challenge)
@@ -630,11 +631,16 @@ with open(results_files_path + "/results.txt", 'w') as results_file:
           color = colors[gt_classes.index(obj["class_name"])]
           bbgt = [float(x) for x in obj["bbox"].split()]
           cv2.rectangle(img, (int(bbgt[0]), int(bbgt[1])), (int(bbgt[2]), int(bbgt[3])), color, 2)
+          font_size = math.sqrt((bbgt[2] - bbgt[0]) * (bbgt[3] - bbgt[1])) / 50
+          if font_size > 1:
+            font_size = 1
+          elif font_size < 0.3:
+            font_size = 0.3
           cv2.putText(img,
                       obj["class_name"],
-                      (int(bbgt[0]), int(bbgt[1]) - 10),
+                      (int(bbgt[0]), int(bbgt[1]) - 3),
                       cv2.FONT_HERSHEY_SIMPLEX,
-                      1, color, 1)
+                      font_size, color, 1)
       output_img_path = results_files_path + "/images/GROUND_TRUTH_NO_MATCH/" + img_file_name
       cv2.imwrite(output_img_path, img)
 
