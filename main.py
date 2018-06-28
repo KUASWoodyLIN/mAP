@@ -285,6 +285,8 @@ if show_animation:
   os.makedirs(results_files_path + "/images/REPEATED_MATCH")
   os.makedirs(results_files_path + "/images/INSUFFICIENT_OVERLAP")
   os.makedirs(results_files_path + "/images/GROUND_TRUTH_NO_MATCH")
+  os.makedirs(results_files_path + "/images/GROUND_TRUTH_MATCH")
+
 
 """
  Ground-Truth
@@ -624,25 +626,45 @@ with open(results_files_path + "/results.txt", 'w') as results_file:
     for gt_file in gt_files:
       name = os.path.split(gt_file)[-1].split('_ground_truth.json')[0]
       img_file_name = name + '.jpg'
-      img = cv2.imread(img_path + '/' + img_file_name)
+      img_false = cv2.imread(img_path + '/' + img_file_name)
+      img_true = np.copy(img_false)
       ground_truth_data = json.load(open(gt_file))
+      # Ground truth not match
       for obj in ground_truth_data:
         if not obj["used"]:
           color = colors[gt_classes.index(obj["class_name"])]
           bbgt = [float(x) for x in obj["bbox"].split()]
-          cv2.rectangle(img, (int(bbgt[0]), int(bbgt[1])), (int(bbgt[2]), int(bbgt[3])), color, 2)
+          cv2.rectangle(img_false, (int(bbgt[0]), int(bbgt[1])), (int(bbgt[2]), int(bbgt[3])), color, 2)
           font_size = math.sqrt((bbgt[2] - bbgt[0]) * (bbgt[3] - bbgt[1])) / 50
           if font_size > 1:
             font_size = 1
           elif font_size < 0.3:
             font_size = 0.3
-          cv2.putText(img,
+          cv2.putText(img_false,
                       obj["class_name"],
                       (int(bbgt[0]), int(bbgt[1]) - 3),
                       cv2.FONT_HERSHEY_SIMPLEX,
                       font_size, color, 1)
       output_img_path = results_files_path + "/images/GROUND_TRUTH_NO_MATCH/" + img_file_name
-      cv2.imwrite(output_img_path, img)
+      cv2.imwrite(output_img_path, img_false)
+      # Ground truth match
+      for obj in ground_truth_data:
+        if obj["used"]:
+          color = colors[gt_classes.index(obj["class_name"])]
+          bbgt = [float(x) for x in obj["bbox"].split()]
+          cv2.rectangle(img_true, (int(bbgt[0]), int(bbgt[1])), (int(bbgt[2]), int(bbgt[3])), color, 2)
+          font_size = math.sqrt((bbgt[2] - bbgt[0]) * (bbgt[3] - bbgt[1])) / 50
+          if font_size > 1:
+            font_size = 1
+          elif font_size < 0.3:
+            font_size = 0.3
+          cv2.putText(img_true,
+                      obj["class_name"],
+                      (int(bbgt[0]), int(bbgt[1]) - 3),
+                      cv2.FONT_HERSHEY_SIMPLEX,
+                      font_size, color, 1)
+      output_img_path = results_files_path + "/images/GROUND_TRUTH_MATCH/" + img_file_name
+      cv2.imwrite(output_img_path, img_true)
 
   results_file.write("\n# mAP of all classes\n")
   mAP = sum_AP / n_classes
